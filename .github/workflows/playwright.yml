@@ -32,6 +32,9 @@ jobs:
     name: Tests (${{ matrix.project }})
     needs: typecheck
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     strategy:
       fail-fast: false
       matrix:
@@ -47,7 +50,15 @@ jobs:
         if: matrix.project != 'api'
         run: npx playwright install --with-deps ${{ matrix.project }}
       - name: Run tests
-        run: npx playwright test --project=${{ matrix.project }} --reporter=blob
+        run: npx playwright test --project=${{ matrix.project }} --reporter=blob,junit
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: results/junit.xml
+      - name: QA Report Bot
+        if: always()
+        uses: rudrasurti/qa-report-bot@main
+        with:
+          junit-path: results/junit.xml
+          title: Playwright (${{ matrix.project }})
       - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@v4
